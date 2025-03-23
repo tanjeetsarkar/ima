@@ -1,0 +1,47 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.coverprofile
+
+# Go workspace file
+*.code-workspace
+
+# Dependency directories (vendor/)
+vendor/
+
+# Go modules
+/go.sum
+/go.mod
+
+# IDE and editor specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Makefile specific
+*.d
+*.o
+*.a
+*.lo
+*.la
+*.lai
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.obj
+*.lib
+*.exp
+*.pdb
+*.idb
+*.DS_Store
+build/*
