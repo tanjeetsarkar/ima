@@ -9,8 +9,6 @@ builds:
       - windows
 archives:
   - format: tar.gz
-    replacements:
-      darwin: macOS
 release:
   github:
     owner: tanjeetsarkar
