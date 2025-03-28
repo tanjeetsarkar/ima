@@ -1,5 +1,7 @@
 # Image Archive Program
 
+This idea was originally scoped by [Chris](https://github.com/chrissy-dev) in his [blog](https://www.scottishstoater.com/2025/03/scoping-a-local-first-image-archive/)
+
 ## About the Program
 The Image Archive Program is a CLI-based tool designed to simplify the process of organizing and managing image collections. It generates `index.html` files for directories, creating a navigable gallery structure for images. The program also includes a watcher feature to monitor directories for changes and automatically update the gallery.
 
