@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"os"
@@ -44,6 +45,10 @@ var indexTemplate = `
       overflow-y: auto;
       border-right: 1px solid #ccc;
       padding: 20px;
+      resize: horizontal;
+      overflow: hidden;
+      min-width: 150px;
+      max-width: 400px;
     }
     .sidebar ul { list-style: none; }
     .sidebar li { margin-bottom: 10px; }
@@ -67,11 +72,31 @@ var indexTemplate = `
       grid-gap: 15px;
     }
     .grid img {
-      width: 300px;
-      height: 300px;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       display: block;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      cursor: pointer;
+    }
+     
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal img {
+      max-width: 95vh;
+      max-height: 95vh;
+      object-fit: contain;
+    }
+    .modal:target {
+      display: flex;
     }
   </style>
 </head>
@@ -90,7 +115,12 @@ var indexTemplate = `
     {{if .Images}}
     <div class="grid">
       {{range .Images}}
-      <img src="{{.}}" alt="">
+      <a href="#modal-{{.}}">
+        <img loading="lazy" src="{{.}}" alt="">
+      </a>
+      <div id="modal-{{.}}" class="modal">
+        <img src="{{.}}" alt="">
+      </div>
       {{end}}
     </div>
     {{else}}
@@ -105,6 +135,36 @@ var indexTemplate = `
         this.classList.add('active');
       });
     });
+    document.addEventListener('DOMContentLoaded', () => {
+    const modals = document.querySelectorAll('.modal');
+    const images = Array.from(document.querySelectorAll('.grid a'));
+    const modalImages = Array.from(document.querySelectorAll('.modal img'));
+
+    // Close modal when clicking outside the image
+    modals.forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          window.location.hash = ''; // Close the modal
+        }
+      });
+    });
+
+    // Navigate with left and right arrow keys
+    document.addEventListener('keydown', (e) => {
+      const currentHash = window.location.hash;
+      if (!currentHash) return;
+
+      const currentIndex = images.findIndex(link => ` + "`" + `#${link.getAttribute('href').substring(1)}` + "`" + `=== currentHash);
+
+      if (e.key === 'ArrowRight') {
+        const nextIndex = (currentIndex + 1) % images.length;
+        window.location.hash = ` + "`" + `#${images[nextIndex].getAttribute('href').substring(1)}` + "`" + `;
+      } else if (e.key === 'ArrowLeft') {
+        const prevIndex = (currentIndex - 1 + images.length) % images.length;
+        window.location.hash = ` + "`" + `#${images[prevIndex].getAttribute('href').substring(1)}` + "`" + `;
+      }
+    });
+  });
   </script>
 </body>
 </html>
@@ -130,6 +190,16 @@ func GenerateIndexHTML(dir string) error {
 
 	var subDirs []SubDir
 	var images []string
+
+	parentDir := filepath.Dir(dir)
+
+	fmt.Println(parentDir, dir)
+	if parentDir != dir && parentDir != "." && parentDir != "/" { // Avoid adding ".." for the root directory.
+		subDirs = append(subDirs, SubDir{
+			Name: "..",
+			Link: "..",
+		})
+	}
 
 	for _, item := range items {
 		if item.IsDir() {
@@ -168,6 +238,7 @@ func GenerateIndexHTML(dir string) error {
 }
 
 func SplitCreate(rootDir string) {
+	rootDir = strings.TrimSuffix(rootDir, string(os.PathSeparator))
 	log.Printf("Indexing directory : %s", rootDir)
 	// Walk through each directory and generate an index.html.
 	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {

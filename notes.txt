@@ -1,0 +1,9 @@
+Index html should have links to sub directories.
+Index html should have src pointed to all the images in the directory
+minimal js
+
+
+Advanced - 
+Addition of back ".." button on the directory list to go back
+Addition of resizable sidebar to show more directory name content on sidebar
+
