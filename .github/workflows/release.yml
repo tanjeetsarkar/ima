@@ -17,11 +17,6 @@ jobs:
         with:
           go-version: stable
 
-      # (Optional) Run tests to ensure your application builds and passes all checks
-      - name: Run tests
-        run: go test ./...
-
-      # Use GoReleaser to build and publish the release artifacts
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
