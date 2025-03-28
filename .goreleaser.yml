@@ -1,0 +1,16 @@
+project_name: ima
+builds:
+  - main: ./main.go
+    binary: ima
+    goos:
+      - linux
+      - darwin
+      - windows
+archives:
+  - format: tar.gz
+    replacements:
+      darwin: macOS
+release:
+  github:
+    owner: tanjeetsarkar
+    name: ima
