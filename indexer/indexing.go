@@ -21,6 +21,7 @@ type PageData struct {
 	SubDirs     []SubDir
 	Images      []string
 	CurrentPath string
+	Thumbs      bool
 }
 
 // SubDir represents a subdirectory entry for the sidebar.
@@ -122,7 +123,11 @@ var indexTemplate = `
     <div class="grid">
       {{range .Images}}
       <a href="#modal-{{.}}">
+      {{if $.Thumbs}}
         <img loading="lazy" src=".thumbs/{{.}}" alt="">
+      {{else}}
+        <img loading="lazy" src="{{.}}" alt="">
+      {{end}}
       </a>
       <div id="modal-{{.}}" class="modal">
         <img src="{{.}}" alt="">
@@ -274,6 +279,7 @@ func GenerateIndexHTML(dir string) error {
 		SubDirs:     subDirs,
 		Images:      images,
 		CurrentPath: dir,
+		Thumbs:      !noThumb,
 	}
 
 	tmpl, err := template.New("index").Parse(indexTemplate)
