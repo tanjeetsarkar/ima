@@ -11,6 +11,7 @@
 
 # Go workspace file
 *.code-workspace
+PORTFOLIO
 
 # Dependency directories (vendor/)
 vendor/

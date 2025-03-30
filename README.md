@@ -33,6 +33,10 @@ The Image Archive Program is a CLI-based tool designed to simplify the process o
      ```sh
      ./image-archive [directory] --watch
      ```
+   - To disable thumbnail generation:
+     ```sh
+     ./image-archive [directory] --nothumbs
+     ```
 
 3. **Clean Build Artifacts**:
    - Use the following command to clean up build artifacts:
@@ -63,6 +67,7 @@ The Image Archive Program is a CLI-based tool designed to simplify the process o
   - Add support for generating thumbnails for faster loading.
   - Implement a feature to export the gallery as a standalone package.
   - Add support for adding and displaying metadata for images and directories (e.g., titles, descriptions, tags).
+  - Metadata based searching and sorting 
 
 - **Documentation and Tutorials**:
   - Provide detailed documentation and video tutorials for new users.

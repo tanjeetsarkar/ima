@@ -1,11 +1,12 @@
 module github.com/image-archive
 
-go 1.22.2
+go 1.24.1
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/cobra v1.9.1
+	golang.org/x/image v0.25.0
 )
 
 require (

@@ -34,7 +34,7 @@ func main() {
 			}
 		},
 	}
-
+	indexer.AddFlags(rootCmd)
 	rootCmd.Flags().BoolVar(&watchFlag, "watch", false, "Start watching the directory for changes")
 
 	if err := rootCmd.Execute(); err != nil {
@@ -46,7 +46,7 @@ func watcherCmd(dir string) {
 	cfg := watcher.Config{
 		Path:        dir,
 		EventBuffer: 100,
-		ExcludeDirs: []string{"index.html"},
+		ExcludeDirs: []string{"index.html", ".thumbs"},
 	}
 
 	fileWatcher, err := watcher.New(cfg)

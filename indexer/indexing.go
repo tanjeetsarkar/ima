@@ -1,12 +1,18 @@
 package indexer
 
 import (
-	"fmt"
 	"html/template"
+	"image"
+	"image/jpeg"
+	_ "image/png"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+
+	"github.com/spf13/cobra"
+	"golang.org/x/image/draw"
 )
 
 // PageData holds the data for our HTML template.
@@ -68,7 +74,7 @@ var indexTemplate = `
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       grid-gap: 15px;
     }
     .grid img {
@@ -116,7 +122,7 @@ var indexTemplate = `
     <div class="grid">
       {{range .Images}}
       <a href="#modal-{{.}}">
-        <img loading="lazy" src="{{.}}" alt="">
+        <img loading="lazy" src=".thumbs/{{.}}" alt="">
       </a>
       <div id="modal-{{.}}" class="modal">
         <img src="{{.}}" alt="">
@@ -170,6 +176,12 @@ var indexTemplate = `
 </html>
 `
 
+var noThumb bool // Global variable to track the --nothumb flag
+
+func AddFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolVar(&noThumb, "nothumb", false, "Disable thumbnail generation")
+}
+
 // isImageFile checks if a file extension is an image type.
 func isImageFile(name string) bool {
 	ext := strings.ToLower(filepath.Ext(name))
@@ -180,7 +192,6 @@ func isImageFile(name string) bool {
 	return false
 }
 
-// GenerateIndexHTML creates or updates an index.html file in the given directory.
 func GenerateIndexHTML(dir string) error {
 	// List items in the directory.
 	items, err := os.ReadDir(dir)
@@ -191,9 +202,16 @@ func GenerateIndexHTML(dir string) error {
 	var subDirs []SubDir
 	var images []string
 
+	// Create .thumbs directory if thumbnails are enabled
+	thumbsDir := filepath.Join(dir, ".thumbs")
+	if !noThumb {
+		if err := os.MkdirAll(thumbsDir, os.ModePerm); err != nil {
+			return err
+		}
+	}
+
 	parentDir := filepath.Dir(dir)
 
-	fmt.Println(parentDir, dir)
 	if parentDir != dir && parentDir != "." && parentDir != "/" { // Avoid adding ".." for the root directory.
 		subDirs = append(subDirs, SubDir{
 			Name: "..",
@@ -201,16 +219,52 @@ func GenerateIndexHTML(dir string) error {
 		})
 	}
 
+	// Channel to collect errors from goroutines
+	errChan := make(chan error, len(items))
+	// WaitGroup to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
 	for _, item := range items {
+		log.Printf("Processing %s", item.Name())
 		if item.IsDir() {
 			// Add subdirectory link.
-			subDirs = append(subDirs, SubDir{
-				Name: item.Name(),
-				Link: item.Name(),
-			})
+			if item.Name() != ".thumbs" {
+				subDirs = append(subDirs, SubDir{
+					Name: item.Name(),
+					Link: item.Name(),
+				})
+			}
 		} else if isImageFile(item.Name()) {
 			// Add image file.
 			images = append(images, item.Name())
+
+			if !noThumb {
+				imagePath := filepath.Join(dir, item.Name())
+				thumbnailPath := filepath.Join(thumbsDir, item.Name())
+
+				// Check if thumbnail already exists
+				if _, err := os.Stat(thumbnailPath); os.IsNotExist(err) {
+					wg.Add(1)
+					go func(imagePath, thumbnailPath string) {
+						defer wg.Done()
+						if err := generateThumbnail(imagePath, thumbnailPath); err != nil {
+							log.Printf("Failed to generate thumbnail for %s: %v", imagePath, err)
+							errChan <- err
+						}
+					}(imagePath, thumbnailPath)
+				}
+			}
+		}
+	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+	close(errChan)
+
+	// Check if there were any errors
+	for err := range errChan {
+		if err != nil {
+			return err
 		}
 	}
 
@@ -247,6 +301,9 @@ func SplitCreate(rootDir string) {
 		}
 		if info.IsDir() {
 			// Create/update the index.html for this directory.
+			if filepath.Base(path) == ".thumbs" {
+				return nil // Skip the .thumbs directory
+			}
 			if err := GenerateIndexHTML(path); err != nil {
 				// Handle the error as needed (e.g., log it).
 				return err
@@ -258,4 +315,38 @@ func SplitCreate(rootDir string) {
 		// Handle the error from filepath.Walk.
 		return
 	}
+}
+
+func generateThumbnail(imagePath, thumbnailPath string) error {
+	// Open the original image file.
+	file, err := os.Open(imagePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Decode the image.
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return err
+	}
+
+	// Resize the image to a thumbnail (e.g., 150x150).
+	thumbnail := resizeImage(img, 150, 150)
+
+	// Create the thumbnail file.
+	outFile, err := os.Create(thumbnailPath)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	// Save the thumbnail as a JPEG.
+	return jpeg.Encode(outFile, thumbnail, &jpeg.Options{Quality: 80})
+}
+
+func resizeImage(img image.Image, width, height int) image.Image {
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
+	return dst
 }
